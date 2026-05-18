@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Spotify Galaxy — Interactive Data Vis</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#05080f;--card:#0c1422;--green:#1ED760;--blue:#38BDF8;--pink:#FF4D8D;
+  --purple:#A855F7;--text:#EEF2FF;--muted:#64748B;--border:rgba(255,255,255,0.06)}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;
+  justify-content:space-between;padding:12px 40px;
+  background:rgba(5,8,15,0.93);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nl{font-family:'Orbitron',monospace;font-size:12px;font-weight:900;color:var(--green);letter-spacing:.15em}
+.nr{display:flex;gap:0;list-style:none;flex-wrap:wrap}
+.nr a{color:var(--muted);text-decoration:none;font-size:10px;padding:5px 11px;border-radius:6px;transition:all .2s}
+.nr a:hover{color:var(--green);background:rgba(30,215,96,.08)}
+.nr a.fl{color:var(--green)}
+
+#hero{position:relative;height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;overflow:hidden}
+#sf{position:absolute;inset:0}
+.nb{position:absolute;inset:0;
+  background:radial-gradient(ellipse 55% 40% at 25% 65%,rgba(168,85,247,.09),transparent 60%),
+             radial-gradient(ellipse 50% 35% at 78% 30%,rgba(56,189,248,.08),transparent 55%),
+             radial-gradient(ellipse 40% 30% at 50% 85%,rgba(30,215,96,.06),transparent 50%)}
+.hc{position:relative;z-index:1;padding:0 24px}
+.ey{font-size:10px;font-weight:600;letter-spacing:.3em;color:var(--green);text-transform:uppercase;
+  margin-bottom:18px;opacity:0;animation:fup .8s .3s forwards}
+.ht{font-family:'Orbitron',monospace;font-size:clamp(44px,9vw,108px);font-weight:900;line-height:.88;
+  background:linear-gradient(140deg,#fff 0%,var(--green) 40%,var(--blue) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:22px;opacity:0;animation:fup .8s .5s forwards}
+.hs{font-size:14px;font-weight:300;color:var(--muted);max-width:500px;line-height:1.9;
+  margin:0 auto 38px;opacity:0;animation:fup .8s .7s forwards}
+.hst{display:flex;gap:44px;justify-content:center;opacity:0;animation:fup .8s .9s forwards}
+.sn{font-family:'Orbitron',monospace;font-size:26px;font-weight:700;color:var(--green)}
+.slb{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
+.scue{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);z-index:1;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  color:var(--muted);font-size:9px;letter-spacing:.25em;animation:bob 2.4s ease-in-out infinite}
+.sline{width:1px;height:38px;background:linear-gradient(to bottom,var(--green),transparent)}
+
+.sw{padding:80px 40px;max-width:1200px;margin:0 auto}
+.ew{font-size:9px;font-weight:600;letter-spacing:.3em;color:var(--green);text-transform:uppercase;
+  margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.ew::before{content:'';width:22px;height:1px;background:var(--green)}
+.st{font-family:'Syne',sans-serif;font-size:clamp(24px,3.5vw,46px);font-weight:800;
+  line-height:1.06;margin-bottom:10px;color:#fff}
+.sd{font-size:13px;font-weight:300;color:var(--muted);max-width:620px;line-height:1.9;margin-bottom:28px}
+
+/* TWO-COLUMN LAYOUT: chart left, legend right */
+.with-leg{display:grid;grid-template-columns:1fr 272px;gap:22px;align-items:start}
+/* TWO-COLUMN LAYOUT: legend left, chart right */
+.leg-left{display:grid;grid-template-columns:272px 1fr;gap:22px;align-items:start}
+
+/* CARD */
+.cd{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:26px;
+  position:relative;overflow:hidden}
+.cd::before{content:'';position:absolute;inset:0;border-radius:18px;pointer-events:none;
+  background:radial-gradient(ellipse 50% 40% at 50% 0%,rgba(30,215,96,.03),transparent)}
+.fl-card{padding:0;border-radius:18px;overflow:hidden;background:#fff}
+
+/* PICTORIAL LEGEND */
+.pleg{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px 18px}
+.pleg-title{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:.15em;
+  color:var(--green);text-transform:uppercase;margin-bottom:14px;
+  padding-bottom:10px;border-bottom:1px solid var(--border)}
+.pi{display:flex;align-items:flex-start;gap:11px;padding:9px 0;border-bottom:1px solid var(--border)}
+.pi:last-child{border-bottom:none;padding-bottom:0}
+.pi-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-size:17px;flex-shrink:0;margin-top:1px}
+.pi strong{display:block;font-size:12px;font-weight:500;color:var(--text);margin-bottom:3px;line-height:1.2}
+.pi span{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* RADAR controls */
+.rl{display:grid;grid-template-columns:190px 1fr;gap:20px;align-items:start}
+.gl{display:flex;flex-direction:column;gap:3px;max-height:380px;overflow-y:auto;padding-right:5px}
+.gl::-webkit-scrollbar{width:3px}
+.gl::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.gb{display:flex;align-items:center;gap:8px;padding:7px 10px;background:transparent;
+  border:1px solid transparent;border-radius:7px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:12px;color:var(--muted);
+  text-align:left;text-transform:capitalize;transition:all .15s}
+.gb:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.gb.on{background:rgba(30,215,96,.09);border-color:rgba(30,215,96,.28);color:var(--green)}
+.gd{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sp{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:14px}
+.spill{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:9px;padding:10px;text-align:center}
+.spv{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--green)}
+.spk{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-top:3px}
+
+.note{font-size:11px;color:var(--muted);margin-top:10px;font-style:italic;line-height:1.7}
+.note strong{color:var(--text);font-style:normal}
+
+.dv{max-width:1200px;margin:0 auto;padding:0 40px}
+.dvl{height:1px;background:linear-gradient(to right,transparent,var(--border),transparent)}
+footer{padding:44px 40px;max-width:1200px;margin:0 auto;border-top:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}
+.fb{font-family:'Orbitron',monospace;font-size:15px;font-weight:900;color:var(--green)}
+.fc{font-size:11px;color:var(--muted);line-height:1.8}
+.fc a{color:var(--green);text-decoration:none}
+
+@keyframes fup{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(8px)}}
+.fi{opacity:0;transform:translateY(22px);transition:opacity .8s ease,transform .8s ease}
+.fi.vis{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nl">SPOTIFY GALAXY</div>
+  <ul class="nr">
+    <li><a href="#universe" class="fl">✦ Bubble</a></li>
+    <li><a href="#dna">⬡ Radar</a></li>
+    <li><a href="#flourish-heatmap" class="fl">✦ Heatmap</a></li>
+    <li><a href="#flourish-chart" class="fl">✦ Chart</a></li>
+  </ul>
+</nav>
+
+<div id="hero">
+  <canvas id="sf"></canvas>
+  <div class="nb"></div>
+  <div class="hc">
+    <p class="ey">113,843 Tracks · 48 Genres · Keerthana Balamurugan</p>
+    <h1 class="ht">SPOTIFY<br>GALAXY</h1>
+    <p class="hs">Interactive visualizations powered by real Spotify audio data — built with Flourish and custom analysis.</p>
+
+<div class="hst">
+  <div>
+    <div class="sn counter" data-target="113000">0</div>
+    <div class="slb">Tracks</div>
+  </div>
+
+  <div>
+    <div class="sn counter" data-target="48">0</div>
+    <div class="slb">Genres</div>
+  </div>
+
+  <div>
+    <div class="sn counter" data-target="4">0</div>
+    <div class="slb">Charts</div>
+  </div>
+</div>
+
+<script>
+
+const counters = document.querySelectorAll(".counter");
+
+counters.forEach(counter => {
+
+    const target = +counter.getAttribute("data-target");
+
+    let count = 0;
+
+    const speed = target / 120;
+
+    function updateCounter(){
+
+        count += speed;
+
+        if(count < target){
+
+            // FORMAT 113K
+
+            if(target >= 1000){
+
+                counter.innerText =
+                    Math.floor(count / 1000) + "K";
+
+            } else {
+
+                counter.innerText =
+                    Math.floor(count);
+
+            }
+
+            requestAnimationFrame(updateCounter);
+
+        } else {
+
+            if(target >= 1000){
+
+                counter.innerText =
+                    Math.floor(target / 1000) + "K";
+
+            } else {
+
+                counter.innerText = target;
+
+            }
+
+        }
+
+    }
+
+    updateCounter();
+
+});
+
+</script>
+
+  </div>
+  <div class="scue"><span>SCROLL</span><div class="sline"></div></div>
+</div>
+
+<!-- ① FLOURISH BUBBLE -->
+<section class="sw fi" id="universe">
+  <div class="ew">01 — Genre Popularity</div>
+  <h2 class="st">MOST POPULAR GENRES</h2>
+  <p class="sd">Think of this as a map of the music universe. Every bubble is a genre, and the bigger the bubble, the more popular it is. We've stripped away the messy numbers so you can see at a glance which genres are the giants of today and which are the rising stars.</p>
+  <div class="with-leg">
+    <div>
+      <div class="cd fl-card">
+        <iframe src="https://flo.uri.sh/visualisation/28110448/embed"
+          width="100%" height="600" frameborder="0" scrolling="no" allowfullscreen></iframe>
+      </div>
+    </div>
+    <div class="pleg">
+      <p class="pleg-title">How to read</p>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(255,107,157,.15)">🫧</div>
+        <div><strong>Bubble Size</strong><span>Larger = higher average Spotify popularity (0–100 scale)</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(30,215,96,.15)">🎨</div>
+        <div><strong>Colour</strong><span>Each unique colour represents one genre</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(56,189,248,.15)">🖱️</div>
+        <div><strong>Hover</strong><span>Hover a bubble to see its genre name and popularity score</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(56,189,248,.15)">🔎</div>
+        <div><strong>Click</strong><span>Click a bubble to see its songs,genre name and popularity score up close</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(168,85,247,.15)">🌐</div>
+        <div><strong>Position</strong><span>Bubbles cluster by relative popularity — centre = dominant</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(251,146,60,.15)">📊</div>
+        <div><strong>Source</strong><span>113,843 Spotify tracks · 48 genres · Kaggle dataset</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ② RADAR -->
+<section class="sw fi" id="dna">
+  <div class="ew">02 — Audio Fingerprint</div>
+  <h2 class="st">THE BLUEPRINT OF SOUND: DECODING GENRE DNA</h2>
+  <p class="sd">This radar chart visualizes the unique 'audio fingerprint' of different musical genres. By mapping variables such as Energy, Danceability, and Acousticness onto a circular axis, we can see the structural differences that define our favorite styles. Notice how high-energy genres push toward the outer edges, while acoustic genres create distinct, inward-leaning shapes. This 'DNA' reveals the hidden formulas used by producers to evoke specific emotions and physical responses in listeners.</p>
+  <div class="with-leg">
+    <div class="cd">
+      <div class="rl">
+        <div>
+          <p style="font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Select Genre (max 3)</p>
+          <div class="gl" id="gl"></div>
+        </div>
+        <div>
+          <div style="height:400px;position:relative"><canvas id="rc"></canvas></div>
+          <div class="sp" id="rsp"></div>
+        </div>
+      </div>
+    </div>
+    <div class="pleg">
+      <p class="pleg-title">How to read</p>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(255,215,0,.15)">💃</div>
+        <div><strong>Danceability</strong><span>How suitable for dancing — rhythm, beat strength, regularity</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(255,77,141,.15)">⚡</div>
+        <div><strong>Energy</strong><span>Intensity & activity — loud, fast, noisy = high energy</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(56,189,248,.15)">🎙️</div>
+        <div><strong>Speechiness</strong><span>Spoken words present — rap & podcasts score highest</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(168,85,247,.15)">🎹</div>
+        <div><strong>Instrumentalness</strong><span>No vocals detected — classical & EDM score high</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(30,215,96,.15)">🪵</div>
+        <div><strong>Acousticness</strong><span>Confidence the track uses acoustic instruments</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(251,146,60,.15)">🎤</div>
+        <div><strong>Liveness</strong><span>Audience presence — live recordings score highest</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(255,107,157,.15)">😊</div>
+        <div><strong>Valence</strong><span>Musical positiveness — happy & euphoric = high valence</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(255,255,255,.06)">📐</div>
+        <div><strong>Scale</strong><span>All axes run 0–1. Outer edge = maximum value</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ③ FLOURISH HEATMAP -->
+<section class="sw fi" id="flourish-heatmap">
+  <div class="ew">03 — Flourish · Heatmap</div>
+  <h2 class="st">THE PULSE OF GENRE</h2>
+  <p class="sd">This streamgraph visualizes the 'heartbeat' of different musical genres. The horizontal axis (x-axis) represents Tempo, measured in Beats Per Minute (BPM), grouped into 10-beat 'bins.' Each colorful stream represents a unique genre. The vertical thickness of a stream indicates the volume of songs within that speed range.
+By observing the 'swell' and 'shrink' of these shapes, we can see where different styles of music naturally live. For instance, notice how high-energy genres like EDM or House expand significantly around the 120-130 BPM mark, while Hip-Hop and Acoustic styles occupy the slower, steadier currents on the left side of the river.</p>
+  <div class="with-leg">
+    <div>
+      <div class="cd fl-card">
+        <iframe src="https://flo.uri.sh/visualisation/28115799/embed"
+          width="100%" height="600" frameborder="0" scrolling="no" allowfullscreen></iframe>
+      </div>
+    </div>
+    <div class="pleg">
+      <p class="pleg-title">How to read</p>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(56,189,248,.15)">↔️</div>
+        <div><strong>X Axis — Tempo BPM</strong><span>Runs 60 to 190 BPM in 10-beat bins. Left = slow, right = fast</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(30,215,96,.15)">🌊</div>
+        <div><strong>Each Stream</strong><span>One genre. The thicker the stream, the more songs sit at that tempo</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(255,107,157,.15)">🎨</div>
+        <div><strong>Colour</strong><span>Each genre has its own colour — matched to the legend inside the chart</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(255,215,0,.15)">📍</div>
+        <div><strong>Peaks</strong><span>EDM &amp; House bulge at 120–130 BPM. Hip-hop clusters around 80–90 BPM</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(168,85,247,.15)">↕️</div>
+        <div><strong>Symmetric Shape</strong><span>Streams mirror above and below the centre axis — height = song count</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ④ FLOURISH CHART -->
+<section class="sw fi" id="flourish-chart">
+  <div class="ew">04 — Flourish · Chart</div>
+  <h2 class="st">THE TIKTOK EFFECT: IS SHORTER BETTER?</h2>
+  <p class="sd">Have you noticed songs getting shorter lately? This chart investigates if brevity is the secret to a hit. By plotting song length against popularity, we can see if the biggest tracks are actually the 'short and sweet' ones. Look for the cluster of hits around the 2-to-3-minute mark — that's the 'sweet spot' where music meets our shorter attention spans. It shows us that in the world of streaming, every second counts.</p>
+  <div class="with-leg">
+    <div>
+      <div class="cd fl-card">
+           <iframe src="https://flo.uri.sh/visualisation/28110374/embed"
+          width="100%" height="600" frameborder="0" scrolling="no" allowfullscreen></iframe>
+      </div>
+      </div>
+    <div class="pleg">
+      <p class="pleg-title">How to read</p>
+      <!-- Duration colour legend image from poster -->
+      <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+        <img src="data:image/png;base64,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"
+          alt="Duration colour scale: 1–7 minutes, teal to red"
+          style="width:100%;border-radius:8px;display:block">
+        <p style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5">
+          Colour encodes song duration — teal = shorter tracks (≈1 min), red = longer tracks (≈7 min)
+        </p>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(56,189,248,.15)">⬤</div>
+        <div><strong>Each Point</strong><span>One real Spotify track plotted by duration vs popularity</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(30,215,96,.15)">🟩</div>
+        <div><strong>Sweet Spot</strong><span>2–3 min cluster where the most popular tracks sit</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(168,85,247,.15)">📱</div>
+        <div><strong>TikTok Effect</strong><span>Shorter songs trend higher — attention spans shrink in the streaming era</span></div>
+      </div>
+      <div class="pi">
+        <div class="pi-icon" style="background:rgba(251,146,60,.15)">🖱️</div>
+        <div><strong>Interact</strong><span>Hover points for track name, artist and exact duration</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="dv"><div class="dvl"></div></div>
+<footer>
+  <div>
+    <div class="fb">SPOTIFY GALAXY</div>
+    <p class="fc">by Keerthana Balamurugan · Data: <a href="https://www.kaggle.com/datasets/maharshipandya/-spotify-tracks-dataset" target="_blank">Spotify Tracks Dataset, Kaggle</a></p>
+  </div>
+  <p class="fc" style="text-align:right">3 Flourish embeds · 1 custom radar · Real Spotify audio feature data</p>
+</footer>
+
+<script>
+const AUDIO_FEATS = {"alt-rock": {"danceability": 0.567, "energy": 0.732, "speechiness": 0.046, "acousticness": 0.047, "instrumentalness": 0.03, "liveness": 0.156, "valence": 0.436}, "alternative": {"danceability": 0.576, "energy": 0.747, "speechiness": 0.058, "acousticness": 0.05, "instrumentalness": 0.021, "liveness": 0.221, "valence": 0.42}, "british": {"danceability": 0.585, "energy": 0.626, "speechiness": 0.055, "acousticness": 0.337, "instrumentalness": 0.0, "liveness": 0.234, "valence": 0.217}, "chill": {"danceability": 0.55, "energy": 0.487, "speechiness": 0.057, "acousticness": 0.77, "instrumentalness": 0.0, "liveness": 0.158, "valence": 0.164}, "country": {"danceability": 0.584, "energy": 0.579, "speechiness": 0.031, "acousticness": 0.305, "instrumentalness": 0.0, "liveness": 0.187, "valence": 0.47}, "dance": {"danceability": 0.718, "energy": 0.675, "speechiness": 0.083, "acousticness": 0.176, "instrumentalness": 0.001, "liveness": 0.171, "valence": 0.568}, "edm": {"danceability": 0.688, "energy": 0.741, "speechiness": 0.061, "acousticness": 0.105, "instrumentalness": 0.001, "liveness": 0.171, "valence": 0.506}, "electro": {"danceability": 0.717, "energy": 0.64, "speechiness": 0.084, "acousticness": 0.254, "instrumentalness": 0.053, "liveness": 0.149, "valence": 0.527}, "emo": {"danceability": 0.736, "energy": 0.417, "speechiness": 0.174, "acousticness": 0.69, "instrumentalness": 0.001, "liveness": 0.165, "valence": 0.383}, "folk": {"danceability": 0.49, "energy": 0.494, "speechiness": 0.029, "acousticness": 0.029, "instrumentalness": 0.0, "liveness": 0.086, "valence": 0.411}, "funk": {"danceability": 0.758, "energy": 0.675, "speechiness": 0.126, "acousticness": 0.126, "instrumentalness": 0.001, "liveness": 0.181, "valence": 0.436}, "hard-rock": {"danceability": 0.461, "energy": 0.863, "speechiness": 0.061, "acousticness": 0.032, "instrumentalness": 0.025, "liveness": 0.135, "valence": 0.527}, "hip-hop": {"danceability": 0.745, "energy": 0.669, "speechiness": 0.133, "acousticness": 0.132, "instrumentalness": 0.001, "liveness": 0.192, "valence": 0.507}, "house": {"danceability": 0.753, "energy": 0.73, "speechiness": 0.07, "acousticness": 0.112, "instrumentalness": 0.001, "liveness": 0.146, "valence": 0.564}, "indie": {"danceability": 0.591, "energy": 0.624, "speechiness": 0.057, "acousticness": 0.211, "instrumentalness": 0.138, "liveness": 0.132, "valence": 0.484}, "indie-pop": {"danceability": 0.564, "energy": 0.656, "speechiness": 0.05, "acousticness": 0.268, "instrumentalness": 0.26, "liveness": 0.146, "valence": 0.438}, "k-pop": {"danceability": 0.744, "energy": 0.772, "speechiness": 0.107, "acousticness": 0.04, "instrumentalness": 0.0, "liveness": 0.199, "valence": 0.656}, "latin": {"danceability": 0.779, "energy": 0.688, "speechiness": 0.125, "acousticness": 0.175, "instrumentalness": 0.0, "liveness": 0.2, "valence": 0.462}, "latino": {"danceability": 0.775, "energy": 0.692, "speechiness": 0.114, "acousticness": 0.192, "instrumentalness": 0.001, "liveness": 0.178, "valence": 0.489}, "metal": {"danceability": 0.484, "energy": 0.888, "speechiness": 0.044, "acousticness": 0.035, "instrumentalness": 0.02, "liveness": 0.16, "valence": 0.55}, "piano": {"danceability": 0.596, "energy": 0.699, "speechiness": 0.076, "acousticness": 0.325, "instrumentalness": 0.021, "liveness": 0.098, "valence": 0.454}, "pop": {"danceability": 0.613, "energy": 0.634, "speechiness": 0.075, "acousticness": 0.303, "instrumentalness": 0.007, "liveness": 0.166, "valence": 0.475}, "r-n-b": {"danceability": 0.627, "energy": 0.54, "speechiness": 0.057, "acousticness": 0.69, "instrumentalness": 0.003, "liveness": 0.058, "valence": 0.168}, "reggae": {"danceability": 0.767, "energy": 0.69, "speechiness": 0.127, "acousticness": 0.157, "instrumentalness": 0.0, "liveness": 0.181, "valence": 0.471}, "reggaeton": {"danceability": 0.777, "energy": 0.682, "speechiness": 0.121, "acousticness": 0.2, "instrumentalness": 0.0, "liveness": 0.184, "valence": 0.507}, "rock": {"danceability": 0.594, "energy": 0.706, "speechiness": 0.057, "acousticness": 0.106, "instrumentalness": 0.016, "liveness": 0.158, "valence": 0.48}, "singer-songwriter": {"danceability": 0.593, "energy": 0.524, "speechiness": 0.043, "acousticness": 0.528, "instrumentalness": 0.002, "liveness": 0.087, "valence": 0.293}, "songwriter": {"danceability": 0.593, "energy": 0.524, "speechiness": 0.043, "acousticness": 0.528, "instrumentalness": 0.002, "liveness": 0.087, "valence": 0.293}, "soul": {"danceability": 0.624, "energy": 0.5, "speechiness": 0.086, "acousticness": 0.481, "instrumentalness": 0.001, "liveness": 0.215, "valence": 0.354}, "synth-pop": {"danceability": 0.609, "energy": 0.848, "speechiness": 0.053, "acousticness": 0.182, "instrumentalness": 0.003, "liveness": 0.098, "valence": 0.706}, "trance": {"danceability": 0.757, "energy": 0.797, "speechiness": 0.093, "acousticness": 0.078, "instrumentalness": 0.0, "liveness": 0.131, "valence": 0.565}};
+const ALL_GENRES = ["alt-rock", "alternative", "british", "chill", "country", "dance", "edm", "electro", "emo", "folk", "funk", "hard-rock", "hip-hop", "house", "indie", "indie-pop", "k-pop", "latin", "latino", "metal", "piano", "pop", "r-n-b", "reggae", "reggaeton", "rock", "singer-songwriter", "songwriter", "soul", "synth-pop", "trance"];
+const FEATURES = ["danceability", "energy", "speechiness", "acousticness", "instrumentalness", "liveness", "valence"];
+const DUR_TRACKS = [{"genre": "alt-rock", "duration": 5.03, "popularity": 83, "track": "Smells Like Teen Spirit", "artist": "Nirvana"}, {"genre": "alt-rock", "duration": 2.55, "popularity": 83, "track": "You Get Me So High", "artist": "The Neighbourhood"}, {"genre": "alt-rock", "duration": 4.01, "popularity": 93, "track": "Sweater Weather", "artist": "The Neighbourhood"}, {"genre": "alt-rock", "duration": 5.0, "popularity": 83, "track": "Little Dark Age", "artist": "MGMT"}, {"genre": "alt-rock", "duration": 3.87, "popularity": 84, "track": "Seven Nation Army", "artist": "The White Stripes"}, {"genre": "alt-rock", "duration": 3.44, "popularity": 86, "track": "Softcore", "artist": "The Neighbourhood"}, {"genre": "alt-rock", "duration": 4.34, "popularity": 87, "track": "Daddy Issues", "artist": "The Neighbourhood"}, {"genre": "alt-rock", "duration": 3.32, "popularity": 83, "track": "Shut Up and Dance", "artist": "WALK THE MOON"}, {"genre": "alt-rock", "duration": 3.98, "popularity": 85, "track": "Creep", "artist": "Radiohead"}, {"genre": "alt-rock", "duration": 4.18, "popularity": 84, "track": "Everlong", "artist": "Foo Fighters"}, {"genre": "alt-rock", "duration": 3.72, "popularity": 86, "track": "Mr. Brightside", "artist": "The Killers"}, {"genre": "alt-rock", "duration": 4.47, "popularity": 84, "track": "Losing My Religion", "artist": "R.E.M."}, {"genre": "alternative", "duration": 4.01, "popularity": 93, "track": "Sweater Weather", "artist": "The Neighbourhood"}, {"genre": "alternative", "duration": 4.34, "popularity": 87, "track": "Daddy Issues", "artist": "The Neighbourhood"}, {"genre": "alternative", "duration": 3.87, "popularity": 84, "track": "Seven Nation Army", "artist": "The White Stripes"}, {"genre": "alternative", "duration": 3.72, "popularity": 86, "track": "Mr. Brightside", "artist": "The Killers"}, {"genre": "alternative", "duration": 3.44, "popularity": 86, "track": "Softcore", "artist": "The Neighbourhood"}, {"genre": "alternative", "duration": 5.0, "popularity": 83, "track": "Little Dark Age", "artist": "MGMT"}, {"genre": "alternative", "duration": 2.55, "popularity": 83, "track": "You Get Me So High", "artist": "The Neighbourhood"}, {"genre": "alternative", "duration": 5.03, "popularity": 83, "track": "Smells Like Teen Spirit", "artist": "Nirvana"}, {"genre": "alternative", "duration": 4.18, "popularity": 84, "track": "Everlong", "artist": "Foo Fighters"}, {"genre": "alternative", "duration": 3.43, "popularity": 87, "track": "Miss You", "artist": "Oliver Tree;Robin Schulz"}, {"genre": "alternative", "duration": 3.71, "popularity": 84, "track": "Feel Good Inc.", "artist": "Gorillaz"}, {"genre": "alternative", "duration": 3.5, "popularity": 83, "track": "Chop Suey!", "artist": "System Of A Down"}, {"genre": "alternative", "duration": 2.81, "popularity": 86, "track": "abcdefu", "artist": "GAYLE"}, {"genre": "alternative", "duration": 3.09, "popularity": 83, "track": "Numb", "artist": "Linkin Park"}, {"genre": "alternative", "duration": 3.98, "popularity": 85, "track": "Creep", "artist": "Radiohead"}, {"genre": "alternative", "duration": 4.47, "popularity": 84, "track": "Losing My Religion", "artist": "R.E.M."}, {"genre": "alternative", "duration": 3.32, "popularity": 83, "track": "Shut Up and Dance", "artist": "WALK THE MOON"}, {"genre": "alternative", "duration": 3.61, "popularity": 85, "track": "In the End", "artist": "Linkin Park"}, {"genre": "british", "duration": 3.74, "popularity": 85, "track": "Easy On Me", "artist": "Adele"}, {"genre": "british", "duration": 3.88, "popularity": 87, "track": "Only Love Can Hurt Like This", "artist": "Paloma Faith"}, {"genre": "chill", "duration": 2.86, "popularity": 83, "track": "double take", "artist": "dhruv"}, {"genre": "chill", "duration": 4.07, "popularity": 93, "track": "Another Love", "artist": "Tom Odell"}, {"genre": "country", "duration": 3.8, "popularity": 89, "track": "Something in the Orange", "artist": "Zach Bryan"}, {"genre": "country", "duration": 2.62, "popularity": 86, "track": "You Proof", "artist": "Morgan Wallen"}, {"genre": "country", "duration": 2.98, "popularity": 83, "track": "Wasted On You", "artist": "Morgan Wallen"}, {"genre": "country", "duration": 6.52, "popularity": 84, "track": "Hotel California - 2013 Remaster", "artist": "Eagles"}, {"genre": "country", "duration": 3.46, "popularity": 84, "track": "Rock and A Hard Place", "artist": "Bailey Zimmerman"}, {"genre": "country", "duration": 2.67, "popularity": 84, "track": "Have You Ever Seen The Rain", "artist": "Creedence Clearwater Revival"}, {"genre": "dance", "duration": 2.88, "popularity": 87, "track": "Bad Decisions (with BTS & Snoop Dogg)", "artist": "benny blanco;BTS;Snoop Dogg"}, {"genre": "dance", "duration": 1.81, "popularity": 83, "track": "Bye Bye", "artist": "Marshmello;Juice WRLD"}, {"genre": "dance", "duration": 3.44, "popularity": 83, "track": "That's What I Like", "artist": "Bruno Mars"}, {"genre": "dance", "duration": 3.9, "popularity": 83, "track": "Moth To A Flame (with The Weeknd)", "artist": "Swedish House Mafia;The Week"}, {"genre": "dance", "duration": 3.43, "popularity": 87, "track": "Bam Bam (feat. Ed Sheeran)", "artist": "Camila Cabello;Ed Sheeran"}, {"genre": "dance", "duration": 4.08, "popularity": 84, "track": "Closer", "artist": "The Chainsmokers;Halsey"}, {"genre": "dance", "duration": 4.12, "popularity": 85, "track": "Wake Me Up", "artist": "Avicii"}, {"genre": "dance", "duration": 2.58, "popularity": 85, "track": "Leave Before You Love Me (with Jonas Bro", "artist": "Marshmello;Jonas Brothers"}, {"genre": "dance", "duration": 3.51, "popularity": 84, "track": "Need to Know", "artist": "Doja Cat"}, {"genre": "dance", "duration": 2.94, "popularity": 86, "track": "The Nights", "artist": "Avicii"}, {"genre": "dance", "duration": 3.99, "popularity": 88, "track": "I'm Not The Only One", "artist": "Sam Smith"}, {"genre": "dance", "duration": 2.57, "popularity": 92, "track": "Left and Right (Feat. Jung Kook of BTS)", "artist": "Charlie Puth;Jung Kook;BTS"}, {"genre": "dance", "duration": 3.63, "popularity": 84, "track": "Hips Don't Lie (feat. Wyclef Jean)", "artist": "Shakira;Wyclef Jean"}, {"genre": "dance", "duration": 3.58, "popularity": 89, "track": "One Kiss (with Dua Lipa)", "artist": "Calvin Harris;Dua Lipa"}, {"genre": "dance", "duration": 3.76, "popularity": 93, "track": "CUFF IT", "artist": "Beyonc\u00e9"}, {"genre": "dance", "duration": 3.05, "popularity": 90, "track": "Vegas (From the Original Motion Picture ", "artist": "Doja Cat"}, {"genre": "dance", "duration": 3.81, "popularity": 83, "track": "Stuck with U (with Justin Bieber)", "artist": "Ariana Grande;Justin Bieber"}, {"genre": "dance", "duration": 3.57, "popularity": 83, "track": "Happier", "artist": "Marshmello;Bastille"}, {"genre": "dance", "duration": 3.78, "popularity": 83, "track": "Streets", "artist": "Doja Cat"}, {"genre": "dance", "duration": 3.88, "popularity": 87, "track": "Only Love Can Hurt Like This", "artist": "Paloma Faith"}, {"genre": "edm", "duration": 2.92, "popularity": 98, "track": "I'm Good (Blue)", "artist": "David Guetta;Bebe Rexha"}, {"genre": "edm", "duration": 2.47, "popularity": 88, "track": "Where Are You Now", "artist": "Lost Frequencies;Calum Scott"}, {"genre": "edm", "duration": 2.75, "popularity": 86, "track": "The Motto", "artist": "Ti\u00ebsto;Ava Max"}, {"genre": "edm", "duration": 2.34, "popularity": 84, "track": "Don't Be Shy", "artist": "Ti\u00ebsto;KAROL G"}, {"genre": "edm", "duration": 3.43, "popularity": 84, "track": "Let Me Love You", "artist": "DJ Snake;Justin Bieber"}, {"genre": "edm", "duration": 2.83, "popularity": 85, "track": "Crazy What Love Can Do", "artist": "David Guetta;Becky Hill;Ella"}, {"genre": "edm", "duration": 4.12, "popularity": 85, "track": "Wake Me Up", "artist": "Avicii"}, {"genre": "edm", "duration": 2.38, "popularity": 85, "track": "Words (feat. Zara Larsson)", "artist": "Alesso;Zara Larsson"}, {"genre": "edm", "duration": 2.59, "popularity": 87, "track": "Numb", "artist": "Marshmello;Khalid"}, {"genre": "edm", "duration": 2.16, "popularity": 84, "track": "Hot In It", "artist": "Ti\u00ebsto;Charli XCX"}, {"genre": "edm", "duration": 2.94, "popularity": 86, "track": "The Nights", "artist": "Avicii"}, {"genre": "edm", "duration": 2.58, "popularity": 85, "track": "Leave Before You Love Me (with Jonas Bro", "artist": "Marshmello;Jonas Brothers"}, {"genre": "edm", "duration": 2.48, "popularity": 85, "track": "Bad Memories (feat. Elley Duh\u00e9 & FAST BO", "artist": "MEDUZA;James Carter;Elley Du"}, {"genre": "edm", "duration": 4.08, "popularity": 84, "track": "Closer", "artist": "The Chainsmokers;Halsey"}, {"genre": "edm", "duration": 2.52, "popularity": 87, "track": "Belly Dancer", "artist": "Imanbek;BYOR"}, {"genre": "edm", "duration": 4.12, "popularity": 85, "track": "Something Just Like This", "artist": "The Chainsmokers;Coldplay"}, {"genre": "electro", "duration": 2.38, "popularity": 85, "track": "Words (feat. Zara Larsson)", "artist": "Alesso;Zara Larsson"}, {"genre": "electro", "duration": 4.08, "popularity": 84, "track": "Closer", "artist": "The Chainsmokers;Halsey"}, {"genre": "electro", "duration": 3.58, "popularity": 89, "track": "One Kiss (with Dua Lipa)", "artist": "Calvin Harris;Dua Lipa"}, {"genre": "electro", "duration": 3.23, "popularity": 84, "track": "bad guy", "artist": "Billie Eilish"}, {"genre": "electro", "duration": 2.82, "popularity": 85, "track": "Let Me Down Slowly", "artist": "Alec Benjamin"}, {"genre": "electro", "duration": 3.02, "popularity": 85, "track": "Bored", "artist": "Billie Eilish"}, {"genre": "electro", "duration": 2.59, "popularity": 87, "track": "Numb", "artist": "Marshmello;Khalid"}, {"genre": "electro", "duration": 2.88, "popularity": 87, "track": "Bad Decisions (with BTS & Snoop Dogg)", "artist": "benny blanco;BTS;Snoop Dogg"}, {"genre": "electro", "duration": 2.76, "popularity": 84, "track": "Deep Down (feat. Never Dull)", "artist": "Alok;Ella Eyre;Kenny Dope;Ne"}, {"genre": "electro", "duration": 4.09, "popularity": 86, "track": "everything i wanted", "artist": "Billie Eilish"}, {"genre": "electro", "duration": 2.58, "popularity": 85, "track": "Leave Before You Love Me (with Jonas Bro", "artist": "Marshmello;Jonas Brothers"}, {"genre": "electro", "duration": 2.48, "popularity": 85, "track": "Bad Memories (feat. Elley Duh\u00e9 & FAST BO", "artist": "MEDUZA;James Carter;Elley Du"}, {"genre": "electro", "duration": 3.43, "popularity": 84, "track": "Let Me Love You", "artist": "DJ Snake;Justin Bieber"}, {"genre": "electro", "duration": 2.52, "popularity": 87, "track": "Belly Dancer", "artist": "Imanbek;BYOR"}, {"genre": "electro", "duration": 4.12, "popularity": 85, "track": "Something Just Like This", "artist": "The Chainsmokers;Coldplay"}, {"genre": "emo", "duration": 1.85, "popularity": 86, "track": "Hope", "artist": "XXXTENTACION"}, {"genre": "emo", "duration": 1.99, "popularity": 84, "track": "Jocelyn Flores", "artist": "XXXTENTACION"}, {"genre": "emo", "duration": 2.0, "popularity": 87, "track": "Revenge", "artist": "XXXTENTACION"}, {"genre": "emo", "duration": 1.59, "popularity": 85, "track": "Everybody Dies In Their Nightmares", "artist": "XXXTENTACION"}, {"genre": "folk", "duration": 6.52, "popularity": 84, "track": "Hotel California - 2013 Remaster", "artist": "Eagles"}, {"genre": "folk", "duration": 3.82, "popularity": 90, "track": "Atlantis", "artist": "Seafret"}, {"genre": "funk", "duration": 4.01, "popularity": 89, "track": "Gangsta's Paradise", "artist": "Coolio;L.V."}, {"genre": "funk", "duration": 4.51, "popularity": 84, "track": "Still D.R.E.", "artist": "Dr. Dre;Snoop Dogg"}, {"genre": "funk", "duration": 3.23, "popularity": 84, "track": "Envolver", "artist": "Anitta"}, {"genre": "hard-rock", "duration": 3.47, "popularity": 85, "track": "Highway to Hell", "artist": "AC/DC"}, {"genre": "hard-rock", "duration": 4.88, "popularity": 84, "track": "Thunderstruck", "artist": "AC/DC"}, {"genre": "hard-rock", "duration": 4.26, "popularity": 85, "track": "Back In Black", "artist": "AC/DC"}, {"genre": "hard-rock", "duration": 4.08, "popularity": 88, "track": "Mary On A Cross", "artist": "Ghost"}, {"genre": "hard-rock", "duration": 5.91, "popularity": 84, "track": "Sweet Child O' Mine", "artist": "Guns N' Roses"}, {"genre": "hip-hop", "duration": 4.84, "popularity": 88, "track": "Without Me", "artist": "Eminem"}, {"genre": "hip-hop", "duration": 2.95, "popularity": 84, "track": "HUMBLE.", "artist": "Kendrick Lamar"}, {"genre": "hip-hop", "duration": 3.16, "popularity": 89, "track": "WAIT FOR U (feat. Drake & Tems)", "artist": "Future;Drake;Tems"}, {"genre": "hip-hop", "duration": 2.9, "popularity": 85, "track": "One Dance", "artist": "Drake;Wizkid;Kyla"}, {"genre": "hip-hop", "duration": 3.32, "popularity": 99, "track": "Quevedo: Bzrp Music Sessions, Vol. 52", "artist": "Bizarrap;Quevedo"}, {"genre": "hip-hop", "duration": 4.74, "popularity": 87, "track": "The Real Slim Shady", "artist": "Eminem"}, {"genre": "hip-hop", "duration": 4.96, "popularity": 86, "track": "Till I Collapse", "artist": "Eminem;Nate Dogg"}, {"genre": "hip-hop", "duration": 6.74, "popularity": 85, "track": "Stan", "artist": "Eminem;Dido"}, {"genre": "hip-hop", "duration": 2.4, "popularity": 87, "track": "THATS WHAT I WANT", "artist": "Lil Nas X"}, {"genre": "hip-hop", "duration": 2.44, "popularity": 87, "track": "Betty (Get Money)", "artist": "Yung Gravy"}, {"genre": "hip-hop", "duration": 3.53, "popularity": 86, "track": "INDUSTRY BABY (feat. Jack Harlow)", "artist": "Lil Nas X;Jack Harlow"}, {"genre": "hip-hop", "duration": 2.85, "popularity": 92, "track": "Super Freaky Girl", "artist": "Nicki Minaj"}, {"genre": "hip-hop", "duration": 2.36, "popularity": 89, "track": "STAY (with Justin Bieber)", "artist": "The Kid LAROI;Justin Bieber"}, {"genre": "hip-hop", "duration": 1.65, "popularity": 89, "track": "BILLIE EILISH.", "artist": "Armani White"}, {"genre": "hip-hop", "duration": 3.64, "popularity": 91, "track": "Jimmy Cooks (feat. 21 Savage)", "artist": "Drake;21 Savage"}, {"genre": "hip-hop", "duration": 2.36, "popularity": 86, "track": "STAY (with Justin Bieber)", "artist": "The Kid LAROI;Justin Bieber"}, {"genre": "hip-hop", "duration": 1.99, "popularity": 84, "track": "Jocelyn Flores", "artist": "XXXTENTACION"}, {"genre": "hip-hop", "duration": 3.51, "popularity": 90, "track": "STAR WALKIN' (League of Legends Worlds A", "artist": "Lil Nas X"}, {"genre": "hip-hop", "duration": 4.06, "popularity": 84, "track": "goosebumps", "artist": "Travis Scott"}, {"genre": "hip-hop", "duration": 3.32, "popularity": 84, "track": "God's Plan", "artist": "Drake"}, {"genre": "house", "duration": 2.48, "popularity": 85, "track": "Bad Memories (feat. Elley Duh\u00e9 & FAST BO", "artist": "MEDUZA;James Carter;Elley Du"}, {"genre": "house", "duration": 4.06, "popularity": 84, "track": "goosebumps", "artist": "Travis Scott"}, {"genre": "house", "duration": 3.11, "popularity": 90, "track": "Ferrari", "artist": "James Hype;Miggy Dela Rosa"}, {"genre": "house", "duration": 2.16, "popularity": 84, "track": "Hot In It", "artist": "Ti\u00ebsto;Charli XCX"}, {"genre": "house", "duration": 2.75, "popularity": 86, "track": "The Motto", "artist": "Ti\u00ebsto;Ava Max"}, {"genre": "house", "duration": 2.38, "popularity": 85, "track": "Words (feat. Zara Larsson)", "artist": "Alesso;Zara Larsson"}, {"genre": "house", "duration": 2.47, "popularity": 88, "track": "Where Are You Now", "artist": "Lost Frequencies;Calum Scott"}, {"genre": "house", "duration": 3.58, "popularity": 89, "track": "One Kiss (with Dua Lipa)", "artist": "Calvin Harris;Dua Lipa"}, {"genre": "house", "duration": 2.76, "popularity": 84, "track": "Deep Down (feat. Never Dull)", "artist": "Alok;Ella Eyre;Kenny Dope;Ne"}, {"genre": "house", "duration": 2.52, "popularity": 87, "track": "Belly Dancer", "artist": "Imanbek;BYOR"}, {"genre": "house", "duration": 2.58, "popularity": 85, "track": "Leave Before You Love Me (with Jonas Bro", "artist": "Marshmello;Jonas Brothers"}, {"genre": "house", "duration": 4.08, "popularity": 84, "track": "Closer", "artist": "The Chainsmokers;Halsey"}, {"genre": "house", "duration": 2.34, "popularity": 84, "track": "Don't Be Shy", "artist": "Ti\u00ebsto;KAROL G"}, {"genre": "house", "duration": 2.59, "popularity": 87, "track": "Numb", "artist": "Marshmello;Khalid"}, {"genre": "house", "duration": 4.12, "popularity": 85, "track": "Something Just Like This", "artist": "The Chainsmokers;Coldplay"}, {"genre": "indie", "duration": 3.07, "popularity": 92, "track": "I Wanna Be Yours", "artist": "Arctic Monkeys"}, {"genre": "indie", "duration": 1.65, "popularity": 89, "track": "BILLIE EILISH.", "artist": "Armani White"}, {"genre": "indie", "duration": 4.23, "popularity": 88, "track": "505", "artist": "Arctic Monkeys"}, {"genre": "indie", "duration": 3.99, "popularity": 84, "track": "Pumped Up Kicks", "artist": "Foster The People"}, {"genre": "indie", "duration": 3.55, "popularity": 84, "track": "YKWIM?", "artist": "Yot Club"}, {"genre": "indie", "duration": 3.98, "popularity": 85, "track": "Creep", "artist": "Radiohead"}, {"genre": "indie", "duration": 2.45, "popularity": 86, "track": "Freaks", "artist": "Surf Curse"}, {"genre": "indie", "duration": 3.98, "popularity": 85, "track": "Heat Waves", "artist": "Glass Animals"}, {"genre": "indie", "duration": 2.67, "popularity": 89, "track": "I Love You So", "artist": "The Walters"}, {"genre": "indie", "duration": 4.47, "popularity": 84, "track": "Losing My Religion", "artist": "R.E.M."}, {"genre": "indie", "duration": 4.54, "popularity": 88, "track": "Do I Wanna Know?", "artist": "Arctic Monkeys"}, {"genre": "indie", "duration": 3.53, "popularity": 86, "track": "Beggin'", "artist": "M\u00e5neskin"}, {"genre": "indie", "duration": 4.12, "popularity": 85, "track": "THE LONELIEST", "artist": "M\u00e5neskin"}, {"genre": "indie", "duration": 4.84, "popularity": 84, "track": "Apocalypse", "artist": "Cigarettes After Sex"}, {"genre": "indie", "duration": 3.98, "popularity": 88, "track": "Heat Waves", "artist": "Glass Animals"}, {"genre": "indie", "duration": 2.69, "popularity": 88, "track": "Why'd You Only Call Me When You're High?", "artist": "Arctic Monkeys"}, {"genre": "indie-pop", "duration": 3.53, "popularity": 86, "track": "Beggin'", "artist": "M\u00e5neskin"}, {"genre": "indie-pop", "duration": 4.84, "popularity": 84, "track": "Apocalypse", "artist": "Cigarettes After Sex"}, {"genre": "indie-pop", "duration": 3.98, "popularity": 88, "track": "Heat Waves", "artist": "Glass Animals"}, {"genre": "indie-pop", "duration": 4.47, "popularity": 84, "track": "Losing My Religion", "artist": "R.E.M."}, {"genre": "indie-pop", "duration": 2.45, "popularity": 86, "track": "Freaks", "artist": "Surf Curse"}, {"genre": "indie-pop", "duration": 4.12, "popularity": 85, "track": "THE LONELIEST", "artist": "M\u00e5neskin"}, {"genre": "indie-pop", "duration": 3.98, "popularity": 85, "track": "Heat Waves", "artist": "Glass Animals"}, {"genre": "indie-pop", "duration": 3.55, "popularity": 84, "track": "YKWIM?", "artist": "Yot Club"}, {"genre": "k-pop", "duration": 2.95, "popularity": 85, "track": "LOVE DIVE", "artist": "IVE"}, {"genre": "k-pop", "duration": 2.93, "popularity": 87, "track": "Shut Down", "artist": "BLACKPINK"}, {"genre": "k-pop", "duration": 3.12, "popularity": 85, "track": "Pink Venom", "artist": "BLACKPINK"}, {"genre": "k-pop", "duration": 2.95, "popularity": 88, "track": "After LIKE", "artist": "IVE"}, {"genre": "k-pop", "duration": 3.42, "popularity": 84, "track": "Run BTS", "artist": "BTS"}, {"genre": "k-pop", "duration": 2.96, "popularity": 86, "track": "Talk that Talk", "artist": "TWICE"}, {"genre": "k-pop", "duration": 3.32, "popularity": 85, "track": "Dynamite", "artist": "BTS"}, {"genre": "k-pop", "duration": 2.9, "popularity": 86, "track": "First Class", "artist": "Jack Harlow"}, {"genre": "k-pop", "duration": 3.23, "popularity": 85, "track": "Yet To Come", "artist": "BTS"}, {"genre": "latin", "duration": 2.36, "popularity": 91, "track": "Caile", "artist": "Luar La L"}, {"genre": "latin", "duration": 4.79, "popularity": 86, "track": "Pepas", "artist": "Farruko"}, {"genre": "latin", "duration": 2.71, "popularity": 98, "track": "La Bachata", "artist": "Manuel Turizo"}, {"genre": "latin", "duration": 3.63, "popularity": 84, "track": "Hips Don't Lie (feat. Wyclef Jean)", "artist": "Shakira;Wyclef Jean"}, {"genre": "latin", "duration": 4.1, "popularity": 94, "track": "Moscow Mule", "artist": "Bad Bunny"}, {"genre": "latin", "duration": 3.96, "popularity": 91, "track": "Tarot", "artist": "Bad Bunny;Jhayco"}, {"genre": "latin", "duration": 4.06, "popularity": 97, "track": "Tit\u00ed Me Pregunt\u00f3", "artist": "Bad Bunny"}, {"genre": "latin", "duration": 2.98, "popularity": 97, "track": "Me Porto Bonito", "artist": "Bad Bunny;Chencho Corleone"}, {"genre": "latin", "duration": 3.87, "popularity": 84, "track": "Yo Voy (feat. Daddy Yankee)", "artist": "Zion & Lennox"}, {"genre": "latin", "duration": 4.3, "popularity": 95, "track": "Ojitos Lindos", "artist": "Bad Bunny;Bomba Est\u00e9reo"}, {"genre": "latin", "duration": 3.25, "popularity": 91, "track": "LOKERA", "artist": "Rauw Alejandro;Lyanno;Brray"}, {"genre": "latin", "duration": 2.87, "popularity": 90, "track": "Te Felicito", "artist": "Shakira;Rauw Alejandro"}, {"genre": "latin", "duration": 3.55, "popularity": 96, "track": "Efecto", "artist": "Bad Bunny"}, {"genre": "latin", "duration": 2.89, "popularity": 93, "track": "Neverita", "artist": "Bad Bunny"}, {"genre": "latino", "duration": 3.87, "popularity": 84, "track": "Yo Voy (feat. Daddy Yankee)", "artist": "Zion & Lennox"}, {"genre": "latino", "duration": 2.93, "popularity": 84, "track": "Ens\u00e9\u00f1ame a Bailar", "artist": "Bad Bunny"}, {"genre": "latino", "duration": 4.3, "popularity": 95, "track": "Ojitos Lindos", "artist": "Bad Bunny;Bomba Est\u00e9reo"}, {"genre": "latino", "duration": 4.04, "popularity": 88, "track": "LA CANCI\u00d3N", "artist": "J Balvin;Bad Bunny"}, {"genre": "latino", "duration": 2.87, "popularity": 85, "track": "Normal", "artist": "Feid"}, {"genre": "latino", "duration": 3.18, "popularity": 85, "track": "PUNTO 40", "artist": "Rauw Alejandro;Baby Rasta"}, {"genre": "latino", "duration": 3.25, "popularity": 91, "track": "LOKERA", "artist": "Rauw Alejandro;Lyanno;Brray"}, {"genre": "latino", "duration": 3.21, "popularity": 85, "track": "X \u00daLTIMA VEZ", "artist": "Daddy Yankee;Bad Bunny"}, {"genre": "latino", "duration": 5.66, "popularity": 86, "track": "Andrea", "artist": "Bad Bunny;Buscabulla"}, {"genre": "latino", "duration": 4.25, "popularity": 88, "track": "La Llevo Al Cielo (Ft. \u00d1engo Flow)", "artist": "Chris Jedi;Anuel AA;Chencho "}, {"genre": "latino", "duration": 3.46, "popularity": 87, "track": "Lo Siento BB:/ (with Bad Bunny & Julieta", "artist": "Tainy;Bad Bunny;Julieta Vene"}, {"genre": "latino", "duration": 2.36, "popularity": 91, "track": "Caile", "artist": "Luar La L"}, {"genre": "latino", "duration": 3.45, "popularity": 87, "track": "Yonaguni", "artist": "Bad Bunny"}, {"genre": "latino", "duration": 1.88, "popularity": 89, "track": "c\u00f3mo dormiste?", "artist": "Rels B"}, {"genre": "latino", "duration": 2.61, "popularity": 87, "track": "Feliz Cumplea\u00f1os Ferxxo", "artist": "Feid"}, {"genre": "latino", "duration": 3.79, "popularity": 90, "track": "Party", "artist": "Bad Bunny;Rauw Alejandro"}, {"genre": "latino", "duration": 3.02, "popularity": 85, "track": "Me Fui de Vacaciones", "artist": "Bad Bunny"}, {"genre": "latino", "duration": 2.71, "popularity": 98, "track": "La Bachata", "artist": "Manuel Turizo"}, {"genre": "latino", "duration": 3.81, "popularity": 85, "track": "MEMORIAS", "artist": "Mora;Jhayco"}, {"genre": "latino", "duration": 4.1, "popularity": 94, "track": "Moscow Mule", "artist": "Bad Bunny"}, {"genre": "metal", "duration": 3.61, "popularity": 85, "track": "In the End", "artist": "Linkin Park"}, {"genre": "metal", "duration": 4.18, "popularity": 84, "track": "Everlong", "artist": "Foo Fighters"}, {"genre": "metal", "duration": 4.15, "popularity": 85, "track": "Livin' On A Prayer", "artist": "Bon Jovi"}, {"genre": "metal", "duration": 4.08, "popularity": 88, "track": "Mary On A Cross", "artist": "Ghost"}, {"genre": "metal", "duration": 5.91, "popularity": 84, "track": "Sweet Child O' Mine", "artist": "Guns N' Roses"}, {"genre": "piano", "duration": 2.47, "popularity": 96, "track": "I Ain't Worried", "artist": "OneRepublic"}, {"genre": "piano", "duration": 4.98, "popularity": 90, "track": "Running Up That Hill (A Deal With God)", "artist": "Kate Bush"}, {"genre": "piano", "duration": 3.06, "popularity": 84, "track": "I'm Still Standing", "artist": "Elton John"}, {"genre": "piano", "duration": 3.37, "popularity": 89, "track": "Hold Me Closer", "artist": "Elton John;Britney Spears"}, {"genre": "piano", "duration": 5.01, "popularity": 85, "track": "Running Up That Hill (A Deal With God) -", "artist": "Kate Bush"}, {"genre": "piano", "duration": 3.95, "popularity": 85, "track": "Somewhere Only We Know", "artist": "Keane"}, {"genre": "pop", "duration": 4.04, "popularity": 88, "track": "The Hills", "artist": "The Weeknd"}, {"genre": "pop", "duration": 2.62, "popularity": 100, "track": "Unholy (feat. Kim Petras)", "artist": "Sam Smith;Kim Petras"}, {"genre": "pop", "duration": 2.9, "popularity": 89, "track": "Watermelon Sugar", "artist": "Harry Styles"}, {"genre": "pop", "duration": 4.34, "popularity": 88, "track": "Die For You", "artist": "The Weeknd"}, {"genre": "pop", "duration": 3.34, "popularity": 89, "track": "lovely (with Khalid)", "artist": "Billie Eilish;Khalid"}, {"genre": "pop", "duration": 3.85, "popularity": 88, "track": "Bad Habits", "artist": "Ed Sheeran"}, {"genre": "pop", "duration": 2.79, "popularity": 92, "track": "As It Was", "artist": "Harry Styles"}, {"genre": "pop", "duration": 2.82, "popularity": 85, "track": "Let Me Down Slowly", "artist": "Alec Benjamin"}, {"genre": "pop", "duration": 2.79, "popularity": 95, "track": "As It Was", "artist": "Harry Styles"}, {"genre": "pop", "duration": 3.84, "popularity": 90, "track": "Starboy", "artist": "The Weeknd;Daft Punk"}, {"genre": "pop", "duration": 2.81, "popularity": 86, "track": "abcdefu", "artist": "GAYLE"}, {"genre": "pop", "duration": 2.97, "popularity": 88, "track": "good 4 u", "artist": "Olivia Rodrigo"}, {"genre": "pop", "duration": 3.43, "popularity": 84, "track": "Let Me Love You", "artist": "DJ Snake;Justin Bieber"}, {"genre": "pop", "duration": 4.98, "popularity": 88, "track": "Happier Than Ever", "artist": "Billie Eilish"}, {"genre": "pop", "duration": 4.08, "popularity": 84, "track": "Closer", "artist": "The Chainsmokers;Halsey"}, {"genre": "pop", "duration": 2.94, "popularity": 86, "track": "The Nights", "artist": "Avicii"}, {"genre": "pop", "duration": 3.9, "popularity": 84, "track": "Love Yourself", "artist": "Justin Bieber"}, {"genre": "pop", "duration": 3.23, "popularity": 85, "track": "Yet To Come", "artist": "BTS"}, {"genre": "pop", "duration": 3.86, "popularity": 85, "track": "Blank Space", "artist": "Taylor Swift"}, {"genre": "pop", "duration": 2.4, "popularity": 87, "track": "THATS WHAT I WANT", "artist": "Lil Nas X"}, {"genre": "r-n-b", "duration": 5.01, "popularity": 85, "track": "Running Up That Hill (A Deal With God) -", "artist": "Kate Bush"}, {"genre": "r-n-b", "duration": 4.98, "popularity": 90, "track": "Running Up That Hill (A Deal With God)", "artist": "Kate Bush"}, {"genre": "reggae", "duration": 2.36, "popularity": 90, "track": "Caile", "artist": "Luar La L"}, {"genre": "reggae", "duration": 3.87, "popularity": 84, "track": "Yo Voy (feat. Daddy Yankee)", "artist": "Zion & Lennox"}, {"genre": "reggae", "duration": 3.96, "popularity": 91, "track": "Tarot", "artist": "Bad Bunny;Jhayco"}, {"genre": "reggae", "duration": 3.77, "popularity": 85, "track": "MAMIII", "artist": "Becky G;KAROL G"}, {"genre": "reggae", "duration": 2.71, "popularity": 98, "track": "La Bachata", "artist": "Manuel Turizo"}, {"genre": "reggae", "duration": 3.31, "popularity": 90, "track": "La Corriente", "artist": "Bad Bunny;Tony Dize"}, {"genre": "reggae", "duration": 2.61, "popularity": 87, "track": "Feliz Cumplea\u00f1os Ferxxo", "artist": "Feid"}, {"genre": "reggae", "duration": 3.21, "popularity": 85, "track": "X \u00daLTIMA VEZ", "artist": "Daddy Yankee;Bad Bunny"}, {"genre": "reggae", "duration": 3.79, "popularity": 90, "track": "Party", "artist": "Bad Bunny;Rauw Alejandro"}, {"genre": "reggae", "duration": 4.04, "popularity": 88, "track": "LA CANCI\u00d3N", "artist": "J Balvin;Bad Bunny"}, {"genre": "reggae", "duration": 3.45, "popularity": 87, "track": "Yonaguni", "artist": "Bad Bunny"}, {"genre": "reggae", "duration": 2.98, "popularity": 97, "track": "Me Porto Bonito", "artist": "Bad Bunny;Chencho Corleone"}, {"genre": "reggae", "duration": 4.3, "popularity": 94, "track": "Ojitos Lindos", "artist": "Bad Bunny;Bomba Est\u00e9reo"}, {"genre": "reggae", "duration": 4.1, "popularity": 94, "track": "Moscow Mule", "artist": "Bad Bunny"}, {"genre": "reggae", "duration": 4.06, "popularity": 97, "track": "Tit\u00ed Me Pregunt\u00f3", "artist": "Bad Bunny"}, {"genre": "reggae", "duration": 3.46, "popularity": 87, "track": "Lo Siento BB:/ (with Bad Bunny & Julieta", "artist": "Tainy;Bad Bunny;Julieta Vene"}, {"genre": "reggae", "duration": 3.54, "popularity": 85, "track": "Los Cachos", "artist": "Piso 21;Manuel Turizo"}, {"genre": "reggae", "duration": 3.55, "popularity": 95, "track": "Efecto", "artist": "Bad Bunny"}, {"genre": "reggae", "duration": 2.6, "popularity": 84, "track": "Feliz Cumplea\u00f1os Ferxxo", "artist": "Feid"}, {"genre": "reggae", "duration": 2.87, "popularity": 85, "track": "Normal", "artist": "Feid"}, {"genre": "reggaeton", "duration": 3.52, "popularity": 84, "track": "Aguacero", "artist": "Bad Bunny"}, {"genre": "reggaeton", "duration": 4.04, "popularity": 88, "track": "LA CANCI\u00d3N", "artist": "J Balvin;Bad Bunny"}, {"genre": "reggaeton", "duration": 3.21, "popularity": 85, "track": "X \u00daLTIMA VEZ", "artist": "Daddy Yankee;Bad Bunny"}, {"genre": "reggaeton", "duration": 3.87, "popularity": 84, "track": "Yo Voy (feat. Daddy Yankee)", "artist": "Zion & Lennox"}, {"genre": "reggaeton", "duration": 3.46, "popularity": 87, "track": "Lo Siento BB:/ (with Bad Bunny & Julieta", "artist": "Tainy;Bad Bunny;Julieta Vene"}, {"genre": "reggaeton", "duration": 2.6, "popularity": 84, "track": "Feliz Cumplea\u00f1os Ferxxo", "artist": "Feid"}, {"genre": "reggaeton", "duration": 2.77, "popularity": 86, "track": "Prohibidox", "artist": "Feid"}, {"genre": "reggaeton", "duration": 3.31, "popularity": 90, "track": "La Corriente", "artist": "Bad Bunny;Tony Dize"}, {"genre": "reggaeton", "duration": 3.96, "popularity": 91, "track": "Tarot", "artist": "Bad Bunny;Jhayco"}, {"genre": "reggaeton", "duration": 2.61, "popularity": 87, "track": "Feliz Cumplea\u00f1os Ferxxo", "artist": "Feid"}, {"genre": "reggaeton", "duration": 2.36, "popularity": 90, "track": "Caile", "artist": "Luar La L"}, {"genre": "reggaeton", "duration": 3.02, "popularity": 84, "track": "Me Fui de Vacaciones", "artist": "Bad Bunny"}, {"genre": "reggaeton", "duration": 2.71, "popularity": 98, "track": "La Bachata", "artist": "Manuel Turizo"}, {"genre": "reggaeton", "duration": 4.3, "popularity": 94, "track": "Ojitos Lindos", "artist": "Bad Bunny;Bomba Est\u00e9reo"}, {"genre": "reggaeton", "duration": 3.85, "popularity": 85, "track": "Yo No Soy Celoso", "artist": "Bad Bunny"}, {"genre": "reggaeton", "duration": 3.45, "popularity": 87, "track": "Yonaguni", "artist": "Bad Bunny"}, {"genre": "reggaeton", "duration": 3.27, "popularity": 87, "track": "Un Coco", "artist": "Bad Bunny"}, {"genre": "reggaeton", "duration": 4.1, "popularity": 94, "track": "Moscow Mule", "artist": "Bad Bunny"}, {"genre": "reggaeton", "duration": 3.49, "popularity": 90, "track": "GAT\u00daBELA", "artist": "KAROL G;Maldy"}, {"genre": "reggaeton", "duration": 4.06, "popularity": 97, "track": "Tit\u00ed Me Pregunt\u00f3", "artist": "Bad Bunny"}, {"genre": "rock", "duration": 3.87, "popularity": 84, "track": "Seven Nation Army", "artist": "The White Stripes"}, {"genre": "rock", "duration": 3.53, "popularity": 86, "track": "Beggin'", "artist": "M\u00e5neskin"}, {"genre": "rock", "duration": 5.01, "popularity": 85, "track": "Running Up That Hill (A Deal With God) -", "artist": "Kate Bush"}, {"genre": "rock", "duration": 2.75, "popularity": 84, "track": "Bones", "artist": "Imagine Dragons"}, {"genre": "rock", "duration": 4.23, "popularity": 86, "track": "Every Breath You Take", "artist": "The Police"}, {"genre": "rock", "duration": 5.91, "popularity": 84, "track": "Sweet Child O' Mine", "artist": "Guns N' Roses"}, {"genre": "rock", "duration": 3.37, "popularity": 85, "track": "Stressed Out", "artist": "Twenty One Pilots"}, {"genre": "rock", "duration": 2.69, "popularity": 87, "track": "Why'd You Only Call Me When You're High?", "artist": "Arctic Monkeys"}, {"genre": "rock", "duration": 4.08, "popularity": 88, "track": "Mary On A Cross", "artist": "Ghost"}, {"genre": "rock", "duration": 3.72, "popularity": 86, "track": "Mr. Brightside", "artist": "The Killers"}, {"genre": "rock", "duration": 4.54, "popularity": 88, "track": "Do I Wanna Know?", "artist": "Arctic Monkeys"}, {"genre": "rock", "duration": 4.88, "popularity": 84, "track": "Thunderstruck", "artist": "AC/DC"}, {"genre": "rock", "duration": 2.47, "popularity": 96, "track": "I Ain't Worried", "artist": "OneRepublic"}, {"genre": "rock", "duration": 4.98, "popularity": 90, "track": "Running Up That Hill (A Deal With God)", "artist": "Kate Bush"}, {"genre": "rock", "duration": 2.96, "popularity": 84, "track": "Demons", "artist": "Imagine Dragons"}, {"genre": "rock", "duration": 3.44, "popularity": 86, "track": "Softcore", "artist": "The Neighbourhood"}, {"genre": "rock", "duration": 3.12, "popularity": 85, "track": "Thunder", "artist": "Imagine Dragons"}, {"genre": "rock", "duration": 2.75, "popularity": 89, "track": "Bones", "artist": "Imagine Dragons"}, {"genre": "rock", "duration": 4.34, "popularity": 87, "track": "Daddy Issues", "artist": "The Neighbourhood"}, {"genre": "rock", "duration": 4.01, "popularity": 93, "track": "Sweater Weather", "artist": "The Neighbourhood"}, {"genre": "singer-songwriter", "duration": 2.96, "popularity": 89, "track": "Until I Found You", "artist": "Stephen Sanchez"}, {"genre": "singer-songwriter", "duration": 6.52, "popularity": 84, "track": "Hotel California - 2013 Remaster", "artist": "Eagles"}, {"genre": "singer-songwriter", "duration": 4.98, "popularity": 90, "track": "Running Up That Hill (A Deal With God)", "artist": "Kate Bush"}, {"genre": "singer-songwriter", "duration": 5.01, "popularity": 85, "track": "Running Up That Hill (A Deal With God) -", "artist": "Kate Bush"}, {"genre": "songwriter", "duration": 2.96, "popularity": 89, "track": "Until I Found You", "artist": "Stephen Sanchez"}, {"genre": "songwriter", "duration": 6.52, "popularity": 84, "track": "Hotel California - 2013 Remaster", "artist": "Eagles"}, {"genre": "songwriter", "duration": 4.98, "popularity": 90, "track": "Running Up That Hill (A Deal With God)", "artist": "Kate Bush"}, {"genre": "songwriter", "duration": 5.01, "popularity": 85, "track": "Running Up That Hill (A Deal With God) -", "artist": "Kate Bush"}, {"genre": "soul", "duration": 3.61, "popularity": 88, "track": "Evergreen (You Didn\u2019t Deserve Me At All)", "artist": "Omar Apollo"}, {"genre": "soul", "duration": 3.88, "popularity": 87, "track": "Only Love Can Hurt Like This", "artist": "Paloma Faith"}, {"genre": "soul", "duration": 3.74, "popularity": 84, "track": "Easy On Me", "artist": "Adele"}, {"genre": "soul", "duration": 4.49, "popularity": 85, "track": "All of Me", "artist": "John Legend"}, {"genre": "soul", "duration": 3.9, "popularity": 85, "track": "Lost", "artist": "Frank Ocean"}, {"genre": "soul", "duration": 3.08, "popularity": 85, "track": "Pink + White", "artist": "Frank Ocean"}, {"genre": "synth-pop", "duration": 3.75, "popularity": 85, "track": "Take on Me", "artist": "a-ha"}, {"genre": "synth-pop", "duration": 4.19, "popularity": 87, "track": "Everybody Wants To Rule The World", "artist": "Tears For Fears"}, {"genre": "trance", "duration": 2.75, "popularity": 86, "track": "The Motto", "artist": "Ti\u00ebsto;Ava Max"}, {"genre": "trance", "duration": 2.34, "popularity": 84, "track": "Don't Be Shy", "artist": "Ti\u00ebsto;KAROL G"}, {"genre": "trance", "duration": 2.16, "popularity": 84, "track": "Hot In It", "artist": "Ti\u00ebsto;Charli XCX"}];
+
+const C={
+  'alt-rock':'#4ECDC4','alternative':'#26D07C','british':'#A3C4BC','chill':'#7FDBFF',
+  'country':'#F5AF19','dance':'#00D4FF','edm':'#0099FF','electro':'#01FF70',
+  'emo':'#FF4488','folk':'#C8A97E','funk':'#FFD700','hard-rock':'#CC2200',
+  'hip-hop':'#9B59B6','house':'#FFE044','indie':'#A8E6CF','indie-pop':'#DDA0DD',
+  'k-pop':'#FF69B4','latin':'#F7971E','latino':'#FF6B35','metal':'#AAAAAA',
+  'piano':'#CCCCCC','pop':'#FF6B9D','r-n-b':'#E67E22','reggae':'#56AB2F',
+  'reggaeton':'#FF8C42','rock':'#E74C3C','singer-songwriter':'#DEB887',
+  'songwriter':'#C4A46B','soul':'#FF851B','synth-pop':'#00FFFF','trance':'#B10DC9'
+};
+const gc=g=>C[g]||'#888';
+
+// Starfield
+(()=>{
+  const cv=document.getElementById('sf'),ctx=cv.getContext('2d');
+  const rsz=()=>{cv.width=innerWidth;cv.height=innerHeight;};rsz();
+  addEventListener('resize',rsz);
+  const s=Array.from({length:220},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+    r:Math.random()*1.4+.2,a:Math.random()*Math.PI*2,sp:Math.random()*.0015+.0008}));
+  const draw=()=>{ctx.clearRect(0,0,cv.width,cv.height);
+    s.forEach(st=>{st.a+=st.sp;ctx.beginPath();ctx.arc(st.x,st.y,st.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,255,${.15+.7*Math.abs(Math.sin(st.a))})`;ctx.fill();});
+    requestAnimationFrame(draw);};draw();
+})();
+
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis');}),{threshold:.08});
+document.querySelectorAll('.fi').forEach(el=>io.observe(el));
+
+// ── RADAR ─────────────────────────────────
+let rc=null,sel=['pop'];
+function initRadar(){
+  const list=document.getElementById('gl');
+  Object.keys(AUDIO_FEATS).sort().forEach(g=>{
+    const b=document.createElement('button');
+    b.className='gb'+(g==='pop'?' on':'');b.dataset.g=g;
+    b.innerHTML=`<span class="gd" style="background:${gc(g)}"></span>${g}`;
+    b.addEventListener('click',()=>toggleR(g,b));list.appendChild(b);
+  });renderR();
+}
+function toggleR(g,btn){
+  const i=sel.indexOf(g);
+  if(i===-1){if(sel.length>=3){const f=sel.shift();document.querySelector(`[data-g="${f}"]`).classList.remove('on');}
+    sel.push(g);btn.classList.add('on');}
+  else{if(sel.length===1)return;sel.splice(i,1);btn.classList.remove('on');}renderR();
+}
+function renderR(){
+  const labels=FEATURES.map(f=>({danceability:'Dance',energy:'Energy',speechiness:'Speech',
+    acousticness:'Acoustic',instrumentalness:'Instr',liveness:'Live',valence:'Valence'}[f]||f));
+  const datasets=sel.map(g=>{const co=gc(g);
+    return{label:g,data:FEATURES.map(f=>AUDIO_FEATS[g]?.[f]??0),backgroundColor:co+'1A',
+      borderColor:co,borderWidth:2,pointBackgroundColor:co,pointRadius:4,pointHoverRadius:7};});
+  if(rc){rc.data.datasets=datasets;rc.update();}
+  else{const ctx=document.getElementById('rc').getContext('2d');
+    rc=new Chart(ctx,{type:'radar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,
+      scales:{r:{min:0,max:1,ticks:{stepSize:.2,color:'rgba(255,255,255,.15)',font:{size:8},backdropColor:'transparent'},
+        grid:{color:'rgba(255,255,255,.07)'},angleLines:{color:'rgba(255,255,255,.07)'},
+        pointLabels:{color:'#64748B',font:{family:'DM Sans',size:12}}}},
+      plugins:{legend:{labels:{color:'#EEF2FF',font:{family:'DM Sans',size:12},boxWidth:10,padding:12}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${(c.raw*100).toFixed(0)}%`},
+          backgroundColor:'rgba(5,8,15,.9)',titleColor:'#1ED760',bodyColor:'#EEF2FF'}}}});}
+  const d=FEATURES.map(f=>AUDIO_FEATS[sel[0]]?.[f]??0);
+  document.getElementById('rsp').innerHTML=
+    [['Dance',0],['Energy',1],['Acoustic',4],['Valence',6]].map(([k,i])=>
+      `<div class="spill"><div class="spv">${Math.round(d[i]*100)}%</div><div class="spk">${k}</div></div>`).join('');
+}
+
+// ── DURATION SCATTER ──────────────────────
+function initDuration(){
+  const ctx=document.getElementById('durChart').getContext('2d');
+  const genres=[...new Set(DUR_TRACKS.map(t=>t.genre))];
+  const datasets=genres.map(g=>({
+    label:g,
+    data:DUR_TRACKS.filter(t=>t.genre===g).map(t=>({x:t.duration,y:t.popularity,
+      label:`♪ ${t.track}\n${t.artist}\n${t.duration}min · pop ${t.popularity}`})),
+    backgroundColor:gc(g)+'77',borderColor:gc(g),borderWidth:1,pointRadius:5,pointHoverRadius:9
+  }));
+
+  new Chart(ctx,{type:'scatter',data:{datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:'#64748B',font:{family:'DM Sans',size:10},boxWidth:9,padding:8,
+          filter:i=>i.index<16}},
+        tooltip:{callbacks:{label:c=>c.raw.label?.split('\n')??[]},
+          backgroundColor:'rgba(5,8,15,.95)',titleColor:'#1ED760',bodyColor:'#EEF2FF',padding:10}
+      },
+      scales:{
+        x:{min:1,max:7,
+          title:{display:true,text:'Duration (minutes)',color:'#64748B',font:{family:'DM Sans',size:11}},
+          grid:{color:'rgba(255,255,255,.04)'},
+          ticks:{color:'#64748B',font:{family:'DM Sans',size:10},stepSize:1,callback:v=>`${v}m`},
+          border:{color:'rgba(255,255,255,.06)'}},
+        y:{min:0,max:100,
+          title:{display:true,text:'Popularity Score',color:'#64748B',font:{family:'DM Sans',size:11}},
+          grid:{color:'rgba(255,255,255,.04)'},
+          ticks:{color:'#64748B',font:{family:'DM Sans',size:10}},
+          border:{color:'rgba(255,255,255,.06)'}}
+      }
+    },
+    plugins:[{
+      id:'sweetspot',
+      beforeDraw(chart){
+        const{ctx,chartArea:{top,bottom},scales:{x}}=chart;
+        if(!x)return;
+        const x1=x.getPixelForValue(2),x2=x.getPixelForValue(3);
+        ctx.save();
+        ctx.fillStyle='rgba(30,215,96,.07)';ctx.fillRect(x1,top,x2-x1,bottom-top);
+        ctx.strokeStyle='rgba(30,215,96,.35)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+        ctx.strokeRect(x1,top,x2-x1,bottom-top);ctx.setLineDash([]);
+        ctx.font='700 9px Orbitron,monospace';ctx.fillStyle='rgba(30,215,96,.65)';
+        ctx.textAlign='center';ctx.fillText('SWEET SPOT',x1+(x2-x1)/2,top+13);
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+window.addEventListener('load',()=>{ initRadar(); });
+</script>
+</body>
+</html>
